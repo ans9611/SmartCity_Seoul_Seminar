@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Smart City ROI Dashboard</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background-color: #f4f4f4; }
+        h1 { text-align: center; color: #333; }
+        .container { background: white; padding: 20px; border-radius: 8px; max-width: 1000px; margin: auto; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        .slider-group { margin-bottom: 25px; }
+        label { font-weight: bold; display: block; margin-bottom: 5px; }
+        input[type=range] { width: 100%; }
+        .value-display { margin-top: 5px; font-size: 16px; color: #555; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 10px; border-bottom: 1px solid #ddd; text-align: left; }
+        th { background-color: #f0f0f0; }
+        #roi-output { font-size: 20px; font-weight: bold; margin-top: 20px; text-align: center; }
+        #roi-chart, #roi-drivers { margin-top: 40px; }
+        button {
+            background-color: #0078D4;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        button:hover {
+            background-color: #005a9e;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Smart City ROI Dashboard</h1>
+
+        <!-- Input Sliders -->
+        <div class="slider-group">
+            <label for="capex">Initial Capital Expenditure ($)</label>
+            <input type="range" id="capex" min="10000000" max="300000000" step="1000000" value="145000000">
+            <div class="value-display" id="capex-value">Selected Capital Expenditure: $145,000,000</div>
+        </div>
+
+        <div class="slider-group">
+            <label for="opex">Annual Operational Expenditure ($)</label>
+            <input type="range" id="opex" min="1000000" max="50000000" step="1000000" value="12000000">
+            <div class="value-display" id="opex-value">Selected Operational Expenditure: $12,000,000</div>
+        </div>
+
+        <div class="slider-group">
+            <label for="benefit">Annual Benefit ($)</label>
+            <input type="range" id="benefit" min="1000000" max="50000000" step="1000000" value="35500000">
+            <div class="value-display" id="benefit-value">Selected Benefit: $35,500,000</div>
+        </div>
+
+        <div class="slider-group">
+            <label for="years">Project Duration (Years)</label>
+            <input type="range" id="years" min="1" max="30" step="1" value="10">
+            <div class="value-display" id="years-value">Selected Duration: 10 years</div>
+        </div>
+
+        <!-- Collapsible Investment Breakdown -->
+        <button onclick="toggleSection('investment-section')">📦 1. Estimated Total Investment Costs</button>
+        <div id="investment-section" style="display: none; margin-top: 10px;">
+            <table>
+                <thead>
+                    <tr><th>Category</th><th>Description</th><th>Estimated Cost (USD)</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>Sensors & Devices</td><td>Environmental, traffic, utility sensors</td><td id="sensors">$45,000,000</td></tr>
+                    <tr><td>Mobility & Vehicles</td><td>EV infrastructure, smart transit</td><td id="mobility">$30,000,000</td></tr>
+                    <tr><td>Buildings & Homes</td><td>Smart meters, energy retrofits</td><td id="buildings">$25,000,000</td></tr>
+                    <tr><td>Urban Services</td><td>Waste, water, emergency systems</td><td id="urban">$20,000,000</td></tr>
+                    <tr><td>Data Infrastructure</td><td>Cloud, edge computing, cybersecurity</td><td id="data">$15,000,000</td></tr>
+                    <tr><td>Governance & UX</td><td>Citizen portals, AI assistants</td><td id="governance">$10,000,000</td></tr>
+                    <tr><td><strong>Total Capital Expenditure</strong></td><td></td><td id="tce"><strong>$145,000,000</strong></td></tr>
+                    <tr><td>Annual Operational Costs</td><td>Maintenance, staffing, updates</td><td id="aoc">$12,000,000/year</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Collapsible Benefit Breakdown -->
+        <button onclick="toggleSection('benefit-section')">💡 2. Estimated Annual Benefits</button>
+        <div id="benefit-section" style="display: none; margin-top: 10px;">
+            <table>
+                <thead>
+                    <tr><th>Benefit Category</th><th>Description</th><th>Est. Annual Value (USD)</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>Energy Efficiency</td><td>Smart grids, LED lighting</td><td id="energy-efficiency">$9,000,000</td></tr>
+                    <tr><td>Traffic Optimization</td><td>Reduced congestion, fuel savings</td><td id="traffic-optimization">$6,000,000</td></tr>
+                    <tr><td>Public Safety</td><td>Faster emergency response, lower crime</td><td id="public-safety">$4,000,000</td></tr>
+                    <tr><td>Healthcare Improvements</td><td>Remote diagnostics, faster care</td><td id="healthcare">$2,500,000</td></tr>
+                    <tr><td>Environmental Gains</td><td>Cleaner air, reduced waste</td><td id="environmental-gains">$2,000,000</td></tr>
+                    <tr><td>Citizen Productivity</td><td>Time saved via digital services</td><td id="citizen-productivity">$5,000,000</td></tr>
+                    <tr><td>Revenue Generation</td><td>Smart parking, data monetization</td><td id="revenue-generation">$7,000,000</td></tr>
+                    <tr><td><strong>Total Annual Benefit</strong></td><td></td><td id="benefit-table"><strong>$35,500,000</strong></td>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ROI Summary Table -->
+        <div id="roi-output">Estimated ROI: 0%</div>
+        <table id="roi-summary">
+            <thead>
+                <tr><th>Metric</th><th>Value (USD)</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>Total Cost</td><td id="total-cost"></td></tr>
+                <tr><td>Total Benefit</td><td id="total-benefit"></td></tr>
+                <tr><td>Net Gain</td><td id="net-gain"></td></tr>
+                <tr><td>ROI (%)</td><td id="roi-percent"></td></tr>
+                <tr><td>Break-even Year</td><td id="break-even"></td></tr>
+            </tbody>
+        </table>
+
+        <!-- Charts -->
+        <div id="roi-chart"></div>
+        <div id="roi-drivers"></div>
+    </div>
+
+    <script>
+        function toggleSection(id) {
+            const section = document.getElementById(id);
+            section.style.display = section.style.display === 'none' ? 'block' : 'none';
+        }
+
+        const capexSlider = document.getElementById('capex');
+        const opexSlider = document.getElementById('opex');
+        const benefitSlider = document.getElementById('benefit');
+        const yearsSlider = document.getElementById('years');
+
+        const capexValue = document.getElementById('capex-value');
+        const opexValue = document.getElementById('opex-value');
+        const benefitValue = document.getElementById('benefit-value');
+        const yearsValue = document.getElementById('years-value');
+        const roiOutput = document.getElementById('roi-output');
+
+        function formatNumber(num) {
+            return "$" + num.toLocaleString();
+        }
+
+        function updateSummary(capex, opex, benefit, years) {
+            const totalCost = capex + (opex * years);
+            const totalBenefit = benefit * years;
+            const netGain = totalBenefit - totalCost;
+            const roi = ((netGain) / totalCost) * 100;
+            const breakEven = (totalCost / benefit).toFixed(1);
+
+
+            document.getElementById('total-cost').textContent = formatNumber(totalCost);
+            document.getElementById('total-benefit').textContent = formatNumber(totalBenefit);
+            document.getElementById('net-gain').textContent = formatNumber(netGain);
+            document.getElementById('roi-percent').textContent = roi.toFixed(2) + "%";
+            // document.getElementById('break-even').textContent = "~" + interpolatedYear.toFixed(1) + " year";
+            roiOutput.textContent = `Estimated ROI After ${years} Years: ${roi.toFixed(2)}%`;
+
+            // Collapsible Investment Breakdown Table
+            document.getElementById('sensors').innerHTML = formatNumber(capex * (45/145));
+            document.getElementById('mobility').innerHTML = formatNumber(capex * (30/145));
+            document.getElementById('buildings').innerHTML = formatNumber(capex * (25/145));
+            document.getElementById('urban').innerHTML = formatNumber(capex * (20/145));
+            document.getElementById('data').innerHTML = formatNumber(capex * (15/145));
+            document.getElementById('governance').innerHTML = formatNumber(capex * (10/145));
+            document.getElementById('tce').innerHTML = "<strong>" + formatNumber(capex) + "</strong>";
+            document.getElementById('aoc').innerHTML = formatNumber(opex) + '/year';
+
+            // Collapsible Benefit Breakdown Table
+            document.getElementById('energy-efficiency').innerHTML = formatNumber(benefit * 0.2535);
+            document.getElementById('traffic-optimization').innerHTML = formatNumber(benefit * 0.1690);
+            document.getElementById('public-safety').innerHTML = formatNumber(benefit * 0.1127);
+            document.getElementById('healthcare').innerHTML = formatNumber(benefit * 0.0704);
+            document.getElementById('environmental-gains').innerHTML = formatNumber(benefit * 0.0563);
+            document.getElementById('citizen-productivity').innerHTML = formatNumber(benefit * 0.1408);
+            document.getElementById('revenue-generation').innerHTML = formatNumber(benefit * 0.1973);
+            document.getElementById('benefit-table').innerHTML = "<strong>" + formatNumber(benefit) + "</strong>";
+        }
+
+        function updateChart(capex, opex, benefit, years) {
+            const x = Array.from({length: years}, (_, i) => i + 1);
+            const cumulativeCost = x.map(year => capex + (opex * year));
+            const cumulativeBenefit = x.map(year => benefit * year);
+            const netROI = x.map((year, i) => ((cumulativeBenefit[i] - cumulativeCost[i]) / cumulativeCost[i] * 100));
+
+            // Find the interval where ROI crosses zero
+            let interpolatedYear = null;
+            for (let i = 1; i < netROI.length; i++) {
+                if (netROI[i - 1] < 0 && netROI[i] >= 0) {
+                    const roi1 = netROI[i - 1];
+                    const roi2 = netROI[i];
+                    const year1 = x[i - 1];
+                    const year2 = x[i];
+
+                    // Linear interpolation formula
+                    interpolatedYear = year1 + ((0 - roi1) / (roi2 - roi1)) * (year2 - year1);
+                    break;
+                }
+            };
+            if (interpolatedYear !== null) {
+                document.getElementById('break-even').textContent = "~" + interpolatedYear.toFixed(2) + " year";
+            } else {
+                document.getElementById('break-even').textContent = "NA";
+            };
+
+            const costTrace = {
+                x: x,
+                y: cumulativeCost,
+                type: 'scatter',
+                mode: 'lines+markers',
+                name: 'Cumulative Cost',
+                line: { color: 'red' },
+                yaxis: 'y1'
+            };
+
+            const benefitTrace = {
+                x: x,
+                y: cumulativeBenefit,
+                type: 'scatter',
+                mode: 'lines+markers',
+                name: 'Cumulative Benefit',
+                line: { color: 'blue' },
+                yaxis: 'y1'
+            };
+
+            const roiTrace = {
+                x: x,
+                y: netROI,
+                type: 'scatter',
+                mode: 'lines+markers',
+                name: 'Net ROI (%)',
+                line: { color: 'green', dash: 'dot' },
+                yaxis: 'y2'
+            };
+
+            const layout = {
+                title: 'ROI Over Time',
+                xaxis: { title: 'Year' },
+                yaxis: {
+                    title: 'USD',
+                    titlefont: { color: '#1f77b4' },
+                    tickfont: { color: '#1f77b4' }
+                },
+                yaxis2: {
+                    title: 'ROI (%)',
+                    titlefont: { color: '#2ca02c' },
+                    tickfont: { color: '#2ca02c' },
+                    overlaying: 'y',
+                    side: 'right'
+                },
+                legend: { x: 0, y: 1.2, orientation: 'h' }
+            };
+
+            Plotly.newPlot('roi-chart', [costTrace, benefitTrace, roiTrace], layout);
+        }
+
+
+        function drawDriversChart() {
+            const labels = ['Energy Efficiency', 'Traffic Optimization', 'Public Safety', 'Healthcare', 'Environmental Gains', 'Citizen Productivity', 'Revenue Generation'];
+            const values = [9000000, 6000000, 4000000, 2500000, 2000000, 5000000, 7000000];
+
+            const data = [{
+                type: 'pie',
+                labels: labels,
+                values: values,
+                textinfo: 'label+percent',
+                hole: 0.4
+            }];
+
+            const layout = {
+                title: 'ROI Drivers Breakdown',
+            };
+
+            Plotly.newPlot('roi-drivers', data, layout);
+        }
+
+        function updateDashboard() {
+            const capex = parseInt(capexSlider.value);
+            const opex = parseInt(opexSlider.value);
+            const benefit = parseInt(benefitSlider.value);
+            const years = parseInt(yearsSlider.value);
+
+            capexValue.textContent = `Selected Capital Expenditure: ${formatNumber(capex)}`;
+            opexValue.textContent = `Selected Operational Expenditure: ${formatNumber(opex)}`;
+            benefitValue.textContent = `Selected Benefit: ${formatNumber(benefit)}`;
+            yearsValue.textContent = `Selected Duration: ${years} years`;
+
+            updateSummary(capex, opex, benefit, years);
+            updateChart(capex, opex, benefit, years);
+        }
+
+        capexSlider.addEventListener('input', updateDashboard);
+        opexSlider.addEventListener('input', updateDashboard);
+        benefitSlider.addEventListener('input', updateDashboard);
+        yearsSlider.addEventListener('input', updateDashboard);
+
+        updateDashboard(); // Initial render
+        drawDriversChart(); // Static pie chart
+    </script>
+</body>
+    <footer>
+        &copy; 2025 All rights reserved by YST
+    </footer>
+</html>
